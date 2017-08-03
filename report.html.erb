@@ -1,0 +1,104 @@
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Sprint Report <%= start_date %> - <%= end_date %></title>
+  <style>
+    .label-symbol {
+      display: inline-block;
+      border: solid 15px;
+      border-radius: 3px;
+    }
+
+    .label-symbol.tag {
+      border-left-width: 13px;
+      border-right-width: 13px;
+      border-top-width: 5px;
+      border-bottom-width: 5px;
+    }
+
+    .label-symbol.green {
+      border-color: #61BD4F;
+    }
+
+    .label-symbol.yellow {
+      border-color: #F2D600;
+    }
+
+    .label-symbol.orange {
+      border-color: #FFAB4A;
+    }
+
+    .label-symbol.red {
+      border-color: #EB5A46;
+    }
+
+    .label-symbol.purple {
+      border-color: #C377E0;
+    }
+
+    .label-symbol.blue {
+      border-color: #0079BF;
+    }
+
+    .label-symbol.sky {
+      border-color: #00C2E0;
+    }
+
+    .label-symbol.pink {
+      border-color: #FF80CE;
+    }
+
+    .label-symbol.black {
+      border-color: #4d4d4d;
+    }
+
+    .list {
+      list-style: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sprint Report</h1>
+  <h2><%= start_date %> - <%= end_date %> (<%= sprint_days %> days)</h2>
+
+  <h3>Progress</h3>
+  <div>
+    <span>Incoming:</span>
+    <span><%= incoming_card_ids.length %></span>
+  </div>
+  <% lists.each do |list| %>
+  <div>
+    <span><%= list["name"] || list["id"] %></span>
+    <span><%= list["cards"].length %></span>
+  </div>
+  <% end %>
+  <div>
+    <span>Abandoned:</span>
+    <span><%= abandoned_card_ids.length %></span>
+  </div>
+
+  <h3>Labels</h3>
+  <ul class="labels list">
+    <% all_label_ids.map{|id| label(id) }.each do |label| %>
+    <li>
+      <span class="label-symbol <%= label["color"] %>"></span>
+      <span><%= label["name"] %></span>
+      <span>(<%= cards_with_label(label["id"]).length %> cards)</span>
+    </li>
+    <% end %>
+  </ul>
+
+  <h3>Cards</h3>
+  <ul class="cards list">
+    <% all_card_ids.map{|id| card(id)}.each do |card| %>
+    <li>
+      <span><a href="<%= card["shortUrl"] %>"><%= card["name"] %></a></span>
+      <% card["labels"].each do |label| %>
+      <span class="label-symbol tag <%= label["color"] %>"></span>
+      <% end %>
+    </li>
+    <% end %>
+  </ul>
+
+</body>
+</html>
