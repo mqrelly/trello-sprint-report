@@ -3,6 +3,13 @@
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
   <title>Sprint Report <%= start_date %> - <%= end_date %></title>
   <style>
+    .report {
+      margin: 50px;
+      font-family: "Tahoma", sans-serif;
+      font-size: 14pt;
+      color: #333;
+    }
+
     .label-symbol {
       display: inline-block;
       border: solid 15px;
@@ -10,10 +17,10 @@
     }
 
     .label-symbol.tag {
-      border-left-width: 13px;
-      border-right-width: 13px;
-      border-top-width: 5px;
-      border-bottom-width: 5px;
+      border-left-width: 17px;
+      border-right-width: 17px;
+      border-top-width: 4px;
+      border-bottom-width: 4px;
     }
 
     .label-symbol.green {
@@ -54,12 +61,89 @@
 
     .list {
       list-style: none;
+      padding-left: inherit;
+    }
+
+    .labels.list .label {
+      margin: 5px 0;
+    }
+
+    .labels.list > li > * {
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .label .name {
+      font-size: 16px;
+    }
+
+    .label .statistics {
+      font-size: 13pt;
+      font-style: italic;
+      color: gray;
+    }
+
+    .cards.list {
+      display: inline-block;
+      margin: 0;
+    }
+
+    .card {
+      display: block;
+      margin: 20px 0;
+    }
+
+    .card .name,
+    .card .name * {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .card .labels {
+      font-size: 0;
+      margin-top: 5px;
+    }
+
+    .card .labels .label-symbol {
+      margin-right: 5px;
+    }
+
+    .badge {
+      display: inline-block;
+      float: right;
+      padding: 4px 7;
+      border-radius: 3px;
+      color: white;
+      font-size: 8pt;
+      font-weight: bolder;
+      text-transform: uppercase;
+    }
+
+    .abandoned .badge {
+      background-color: #fca5a5;
+    }
+
+    .in-progress .badge {
+      background-color: #ffd276;
+    }
+
+    .done .badge {
+      background-color: #7ec07e;
+    }
+
+    .card.abandoned .name {
+      font-style: italic;
+      text-decoration: line-through;
+      color: gray;
     }
   </style>
 </head>
-<body>
+
+<body class="report">
+
   <h1>Sprint Report</h1>
   <h2><%= start_date %> - <%= end_date %> (<%= sprint_days %> days)</h2>
+
 
   <h3>Progress</h3>
   <div>
@@ -68,7 +152,7 @@
   </div>
   <% lists.each do |list| %>
   <div>
-    <span><%= list["name"] %></span>
+    <span><%= list["name"] %>:</span>
     <span><%= list["cards"].length %></span>
   </div>
   <% end %>
@@ -77,25 +161,30 @@
     <span><%= abandoned_card_ids.length %></span>
   </div>
 
+
   <h3>Labels</h3>
   <ul class="labels list">
-    <% all_label_ids.map{|id| label(id) }.each do |label| %>
-    <li>
+    <% all_label_ids.map{|id| label(id)}.each do |label| %>
+    <li class="label">
       <span class="label-symbol <%= label["color"] %>"></span>
-      <span><%= label["name"] %></span>
-      <span>(<%= cards_with_label(label["id"]).length %> cards)</span>
+      <span class="name"><%= label["name"] %></span>
+      <span class="statistics">(<%= cards_with_label(label["id"]).length %> cards)</span>
     </li>
     <% end %>
   </ul>
 
+
   <h3>Cards</h3>
   <ul class="cards list">
     <% all_card_ids.map{|id| card(id)}.each do |card| %>
-    <li>
-      <span><a href="<%= card["shortUrl"] %>"><%= card["name"] %></a></span>
-      <% card["labels"].each do |label| %>
-      <span class="label-symbol tag <%= label["color"] %>"></span>
-      <% end %>
+    <li class="card <%= card["state"] %>">
+      <div class="badge"><%= if card["state"] == "abandoned" then "abandoned" else card["list-name"] end %></div>
+      <div class="name"><a href="<%= card["shortUrl"] %>"><%= card["name"] %></a></span>
+      <div class="labels">
+        <% card["labels"].each do |label| %>
+        <span class="label-symbol tag <%= label["color"] %>"></span>
+        <% end %>
+      </div>
     </li>
     <% end %>
   </ul>

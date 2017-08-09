@@ -12,6 +12,8 @@ module TrelloReport
 
     def initialize(data)
       @data = data
+
+      fill_in_list_names
     end
 
     def timestamp
@@ -60,12 +62,20 @@ module TrelloReport
     def cards_with_label(label_id)
       cards.select{|crd| crd["labels"].any?{|lbl| lbl["id"] == label_id}}
     end
+
+    private
+
+    def fill_in_list_names
+      @data["lists"].each do |lst|
+        lst["cards"].each do |crd|
+          crd["list-name"] = lst["name"]
+          crd["state"] = "in-progress"
+        end
+      end
+    end
   end
 
   class SprintReport
-
-    #incoming_card_ids = end_snapshot.all_card_ids - start_snapshot.all_card_ids
-    #abandoned_card_ids = start_snapshot.all_card_ids - end_snapshot.all_card_ids
 
     def initialize(start_snapshot, end_snapshot, template_file)
       @start_sp = start_snapshot
@@ -73,6 +83,8 @@ module TrelloReport
 
       @template = ERB.new(File.read(template_file))
       @template.filename = template_file
+
+      fill_in_card_states
     end
 
     def start_date
@@ -122,6 +134,18 @@ module TrelloReport
 
     def generate
       @template.result binding
+    end
+
+    private
+
+    def fill_in_card_states
+      lists.last["cards"].each do |crd|
+        crd["state"] = "done"
+      end
+
+      abandoned_card_ids.map{|id| card(id)}.each do |crd|
+        crd["state"] = "Abandoned"
+      end
     end
   end
 
