@@ -14,7 +14,7 @@
  */
 module.exports = {
     "ui": false,
-    "files": "_site/**/*",
+    "files": "tmp/**/*.html",
     "watchOptions": {},
     "server": {
         "baseDir": "tmp",
