@@ -1,3 +1,13 @@
+<%
+
+$barchart_max_height = 240;
+
+def bar_height_in_px(card_count)
+  relative_height = card_count.to_f / all_card_ids.count
+  (relative_height * $barchart_max_height).to_i
+end
+
+%>
 <html>
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
@@ -136,6 +146,45 @@
       text-decoration: line-through;
       color: gray;
     }
+
+    .barchart {
+      display: grid;
+      max-width: <%= (lists.count + 2) * 200 %>px;
+    }
+
+    .barchart .column {
+      position: relative;
+      grid-row-start: 1;
+      min-width: 100px;
+
+      display: flex;
+      flex-flow: column-reverse nowrap;
+    }
+
+    .barchart .column .bar {
+      width: 50px;
+      margin: 10px auto;
+      background-color: silver;
+    }
+
+    .barchart .column .label {
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      padding: 0 2px;
+    }
+
+    .barchart .column .amount {
+      position: relative;
+      height: 36px;
+      width: 36px;
+      text-align: center;
+      line-height: 36px;
+      vertical-align: middle;
+      border: solid 2px gray;
+      border-radius: 19px;
+      margin: 0 auto;
+    }
   </style>
 </head>
 
@@ -146,23 +195,32 @@
 
 
   <h3>Progress</h3>
-  <div>
-    <span>Incoming:</span>
-    <span><%= incoming_card_ids.length %></span>
-  </div>
-  <% lists.each do |list| %>
-  <div>
-    <span><%= list["name"] %>:</span>
-    <span><%= list["cards"].length %></span>
-  </div>
+
+  <div class="barchart">
+    <div class="column">
+      <div class="label">Incoming</div>
+      <div class="bar" style="height: <%= bar_height_in_px(incoming_card_ids.count) %>px;"></div>
+      <div class="amount"><%= incoming_card_ids.count %></div>
+    </div>
+
+  <% lists.each_with_index do |list, idx| %>
+    <div class="column">
+      <div class="label"><%= list["name"] %></div>
+      <div class="bar" style="height: <%= bar_height_in_px(list["cards"].count) %>px;"></div>
+      <div class="amount"><%= list["cards"].count %></div>
+    </div>
   <% end %>
-  <div>
-    <span>Abandoned:</span>
-    <span><%= abandoned_card_ids.length %></span>
+
+    <div class="column">
+      <div class="label">Abandoned</div>
+      <div class="bar" style="height: <%= bar_height_in_px(abandoned_card_ids.count) %>px;"></div>
+      <div class="amount"><%= abandoned_card_ids.count %></div>
+    </div>
   </div>
 
 
   <h3>Labels</h3>
+
   <ul class="labels list">
     <% all_label_ids.map{|id| label(id)}.each do |label| %>
     <li class="label">

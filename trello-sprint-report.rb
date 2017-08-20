@@ -161,7 +161,7 @@ if $0 == __FILE__
 
   start_snapshot = TrelloReport::Snapshot.load(ARGV[0])
   end_snapshot = TrelloReport::Snapshot.load(ARGV[1])
-  template_file = "report.html.erb"
+  template_file = File.join("templates", "simple.html.erb")
 
   report = TrelloReport::SprintReport.new start_snapshot, end_snapshot, template_file
   puts report.generate
