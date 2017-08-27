@@ -2,6 +2,7 @@
 require "json"
 require "date"
 require "erb"
+require "optparse"
 
 module TrelloReport
 
@@ -151,17 +152,65 @@ module TrelloReport
 
 end
 
+def locate_template(name)
+  name ||= "default.html.erb"
+
+  search_dirs = [
+    ".",
+    File.join(File.dirname(__FILE__), "templates")
+  ]
+
+  search_dirs.each do |dir|
+    file = File.join File.expand_path(dir), name
+    return file if File.exists? file
+
+    file += ".erb"
+    return file if File.exists? file
+  end
+
+  throw "Couldn't find report template '#{name}'."
+end
+
 if $0 == __FILE__
 
-  if ARGV.length != 2
-    puts "Usage: $ trello-sprint-report.rb <start-snapshot-file> <stop-snapshot-file>"
-    puts "  The output will be the report in HTML format on the stdout."
+  options = {}
+
+  optionParser = OptionParser.new do |opts|
+    opts.on("-sFILE",
+            "--start-snapshot=FILE",
+            "Snapshot of the board at the beginning of the sprint.") do |start_file|
+      options[:start_file] = start_file
+    end
+
+    opts.on("-eFILE",
+            "--end-snapshot=FILE",
+            "Snapshot of the board at the end of the sprint.") do |end_file|
+      options[:end_file] = end_file
+    end
+
+    opts.on("-tFILE",
+            "--template=FILE",
+            "Template for report generation. Default is simple.html.erb") do |template_file|
+      options[:template_file] = template_file
+    end
+  end
+  optionParser.parse!
+
+  if options[:start_file].nil?
+    puts "Missing start snapshot parameter!"
+    puts optionParser
     exit 1
   end
 
-  start_snapshot = TrelloReport::Snapshot.load(ARGV[0])
-  end_snapshot = TrelloReport::Snapshot.load(ARGV[1])
-  template_file = File.join("templates", "simple.html.erb")
+  if options[:end_file].nil?
+    puts "Missing end snapshot parameter!"
+    puts optionParser
+    exit 1
+  end
+
+  start_snapshot = TrelloReport::Snapshot.load(options[:start_file])
+  end_snapshot = TrelloReport::Snapshot.load(options[:end_file])
+  template_file = locate_template(options[:template_file])
 
   report = TrelloReport::SprintReport.new start_snapshot, end_snapshot, template_file
   puts report.generate
