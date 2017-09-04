@@ -190,7 +190,7 @@ if $0 == __FILE__
 
     opts.on("-tFILE",
             "--template=FILE",
-            "Template for report generation. Default is simple.html.erb") do |template_file|
+            "Optional template for report generation. [simple.html.erb]") do |template_file|
       options[:template_file] = template_file
     end
   end
