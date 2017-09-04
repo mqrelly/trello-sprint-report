@@ -2,6 +2,7 @@
 
 require "json"
 require "net/http"
+require "optparse"
 
 module TrelloReport
 
@@ -25,14 +26,14 @@ module TrelloReport
 
     private
 
-      def api_url_for_list(part, list_id)
-        "https://api.trello.com/1/lists/#{list_id}/#{part}?key=#{@api_key}&token=#{@user_token}"
-      end
+    def api_url_for_list(part, list_id)
+      "https://api.trello.com/1/lists/#{list_id}/#{part}?key=#{@api_key}&token=#{@user_token}"
+    end
 
-      def make_http_request(url)
-        resp = Net::HTTP.get(URI(url))
-        JSON.parse(resp)
-      end
+    def make_http_request(url)
+      resp = Net::HTTP.get(URI(url))
+      JSON.parse(resp)
+    end
   end
 
   class Snapshot
@@ -55,25 +56,25 @@ module TrelloReport
 
     private
 
-      def get_list_snapshot(list_id)
-        {
-          "id" => list_id,
-          "name" => @trello.get_list_name(list_id),
-          "cards" => get_list_cards(list_id)
-        }
-      end
+    def get_list_snapshot(list_id)
+      {
+        "id" => list_id,
+        "name" => @trello.get_list_name(list_id),
+        "cards" => get_list_cards(list_id)
+      }
+    end
 
-      def get_list_cards(list_id)
-        @trello
-          .get_list_cards(list_id)
-          .map{|crd| filter_card_data(crd)}
-      end
+    def get_list_cards(list_id)
+      @trello
+        .get_list_cards(list_id)
+        .map{|crd| filter_card_data(crd)}
+    end
 
-      def filter_card_data(card)
-        card.reject!{|f,_| @field_black_list.include? f} if @field_black_list 
-        card.select!{|f,_| @field_white_list.include? f} if @field_white_list 
-        card
-      end
+    def filter_card_data(card)
+      card.reject!{|f,_| @field_black_list.include? f} if @field_black_list
+      card.select!{|f,_| @field_white_list.include? f} if @field_white_list
+      card
+    end
   end
 
 end
@@ -81,6 +82,21 @@ end
 if $0 == __FILE__
 
   config = JSON.parse(File.read("trello-snapshot-config.json"))
+
+  optionParser = OptionParser.new do |opts|
+    opts.on("-kKEY",
+            "--trello-api-key=KEY",
+            "Optional Trello API Key, overwrites the one in the config file.") do |api_key|
+              config["apiKey"] = api_key
+            end
+
+    opts.on("-tTOKEN",
+            "--trello-user-token=TOKEN",
+            "Optional Trello User Token, overwrites the one in the config file.") do |user_token|
+              config["userToken"] = user_token
+            end
+  end
+  optionParser.parse!
 
   trello = TrelloReport::TrelloGateway.new(config["apiKey"], config["userToken"])
 
