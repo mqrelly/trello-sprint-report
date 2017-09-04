@@ -32,7 +32,13 @@ module TrelloReport
 
     def make_http_request(url)
       resp = Net::HTTP.get(URI(url))
-      JSON.parse(resp)
+      begin
+        JSON.parse(resp)
+      rescue JSON::ParserError
+        STDERR.puts "Failed to make a request to Trello:"
+        STDERR.puts resp
+        exit 1
+      end
     end
   end
 
