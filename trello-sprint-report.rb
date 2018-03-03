@@ -144,8 +144,12 @@ module TrelloReport
         crd["state"] = "done"
       end
 
-      abandoned_card_ids.map{|id| card(id)}.each do |crd|
-        crd["state"] = "Abandoned"
+      abandoned_card_ids.each do |id|
+        card(id)["state"] = "abandoned"
+      end
+
+      incoming_card_ids.each do |id|
+        card(id)["is_incoming"] = true
       end
     end
   end
