@@ -8,7 +8,7 @@ module TrelloReport
 
   class Snapshot
     def self.load(file_name)
-      sp = Snapshot.new(JSON.parse(File.read(file_name)))
+      Snapshot.new(JSON.parse(File.read(file_name)))
     end
 
     def initialize(data)
