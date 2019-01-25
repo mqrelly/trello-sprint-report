@@ -133,6 +133,15 @@ module TrelloReport
         .uniq{|crd| crd["id"]}
     end
 
+    def data_as_json
+      data = {
+        :labels => all_label_ids.map{|id| label(id)},
+        :cards => all_card_ids.map{|id| card(id)}
+      }
+
+      data.to_json
+    end
+
     def generate
       @template.result binding
     end
