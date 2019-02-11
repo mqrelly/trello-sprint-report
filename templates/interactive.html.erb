@@ -294,129 +294,133 @@ $abandoned_picture = "iVBORw0KGgoAAAANSUhEUgAAAEAAAAA/CAYAAABQHc7KAAAABmJLR0QA/w
   </style>
 
   <script>
-    const DATA = <%= data_as_json %>;
+     document.addEventListener("readystatechange", () => {
+      if(document.readyState === "interactive") {
+        const DATA = <%= data_as_json %>;
 
-    let STATE = {
-      labelFilter: [],
-      searchTerms: null
-    };
+        let STATE = {
+          labelFilter: [],
+          searchTerms: null
+        };
 
-    function updateView(data, state) {
-      data.labels.forEach(label => {
-        const labelEl = document.getElementById(`label_${label.id}`);
-        if(isLabelVisible(label)) {
-          labelEl.classList.add("visible");
-        } else {
-          labelEl.classList.remove("visible");
-        }
-      });
+        const UI = {
+          labels: DATA.labels
+            .map(label => { 
+              return {
+                id: label.id,
+                element: document.getElementById(`label_${label.id}`)
+              };
+            })
+            .reduce((map, label) => {
+              map[label.id] = label.element;
+              return map;
+            }, {}),
+          
+          searchBox: document.getElementById("search-box"),
+          searchIcon: document.getElementById("search-icon"),
+          searchTerms: document.getElementById("search-terms"),
+          clearSearch: document.getElementById("clear-search"),
 
-      data.cards.forEach(card => {
-        const cardEl =
-          document.getElementById(`card_${card.id}`) ||
-          document.getElementById(`card_abandoned_${card.id}`);
-        const incomingCardEl = document.getElementById(`card_incoming_${card.id}`);
+          cards: DATA.cards
+            .map(card => {
+              return {
+                id: card.id,
+                elements: Array.prototype.slice.call(document.getElementsByClassName(`card_${card.id}`))
+              };
+            })
+            .reduce((map, label) => {
+              map[label.id] = label.elements;
+              return map;
+            }, {})
+        };
 
-        if(isCardFilteredByLabels(card) &&
-          isCardMatchedByTextSearch(card)) {
-          cardEl.classList.add("visible");
-          if(incomingCardEl) {
-            incomingCardEl.classList.add("visible");
+        DATA.labels.forEach(l => UI.labels[l.id].addEventListener("click",
+          () => toggleLabelFilter(UI, DATA, STATE, l.id)));
+        
+        UI.searchTerms.addEventListener("keyup", () => searchFor(UI, DATA, STATE, UI.searchTerms.value));
+        UI.searchTerms.addEventListener("blur", () => closeSearch(UI, DATA, STATE, false));
+        UI.searchIcon.addEventListener("click", () => openSearch(UI));
+        UI.clearSearch.addEventListener("click", () => closeSearch(UI, DATA, STATE, true));
+
+        function updateView(ui, data, state) {
+          data.labels.forEach(label => {
+            if(isLabelVisible(label)) {
+              ui.labels[label.id].classList.add("visible");
+            } else {
+              ui.labels[label.id].classList.remove("visible");
+            }
+          });
+
+          data.cards.forEach(card => {
+            if(isCardFilteredByLabels(card) && isCardMatchedByTextSearch(card)) {
+              UI.cards[card.id].forEach(cardEl => cardEl.classList.add("visible"));
+            } else {
+              UI.cards[card.id].forEach(cardEl => cardEl.classList.remove("visible"));
+            }
+          });
+
+          function isLabelVisible(label) {
+            return state.labelFilter.length === 0 ||
+              state.labelFilter.includes(label.id);
           }
-        } else {
-          cardEl.classList.remove("visible");
-          if(incomingCardEl) {
-            incomingCardEl.classList.remove("visible");
+
+          function isCardFilteredByLabels(card) {
+            return state.labelFilter.length === 0 ||
+              card.labels
+                .map(l => l.id)
+                .some(id => state.labelFilter.includes(id));
+          }
+
+          function isCardMatchedByTextSearch(card) {
+            return state.searchTerms === null ||
+              card.name.toLocaleLowerCase().includes(state.searchTerms);
           }
         }
-      });
 
-      function isLabelVisible(label) {
-        return state.labelFilter.length === 0 ||
-          state.labelFilter.includes(label.id);
-      }
+        function toggleLabelFilter(ui, data, state, id) {
+          const idx = state.labelFilter.indexOf(id);
+          if(idx === -1) {
+            state.labelFilter.push(id);
+            if(state.labelFilter.length === data.labels.length) {
+              state.labelFilter = [];
+            }
+          } else {
+            state.labelFilter.splice(idx, 1);
+          }
 
-      function isCardFilteredByLabels(card) {
-        return state.labelFilter.length === 0 ||
-          card.labels
-            .map(l => l.id)
-            .some(id => state.labelFilter.includes(id));
-      }
-
-      function isCardMatchedByTextSearch(card) {
-        return state.searchTerms === null ||
-          card.name.toLocaleLowerCase().includes(state.searchTerms);
-      }
-    }
-
-    function toggleLabelFilter(id) {
-      const idx = STATE.labelFilter.indexOf(id);
-      if(idx === -1) {
-        STATE.labelFilter.push(id);
-        if(STATE.labelFilter.length === DATA.labels.length) {
-          STATE.labelFilter = [];
-        }
-      } else {
-        STATE.labelFilter.splice(idx, 1);
-      }
-
-      updateView(DATA, STATE);
-    }
-
-    function openSearch() {
-      const searchBoxEl = document.getElementById("search-box");
-      searchBoxEl.classList.add("open");
-      const searchEl = document.getElementById("search-terms");
-      searchEl.focus();
-    }
-
-    function closeSearch(force) {
-      const searchEl = document.getElementById("search-terms");
-
-      if(searchEl.value !== "") {
-        if(!force) {
-          return;
+          updateView(ui, data, state);
         }
 
-        searchEl.value = "";
-        searchFor("");
+        function openSearch(ui) {
+          ui.searchBox.classList.add("open");
+          ui.searchTerms.focus();
+        }
+
+        function closeSearch(ui, data, state, force) {
+          if(ui.searchTerms.value !== "") {
+            if(!force) {
+              return;
+            }
+
+            ui.searchTerms.value = "";
+            searchFor(ui, data, state, "");
+          }
+
+          ui.searchBox.classList.remove("open");
+        }
+
+        function searchFor(ui, data, state, searchTerms) {
+          searchTerms = searchTerms || null;
+          if(searchTerms) {
+            searchTerms = searchTerms.toLocaleLowerCase();
+          }
+
+          if(searchTerms !== state.searchTerms) {
+            state.searchTerms = searchTerms;
+            updateView(ui, data, state);
+          }
+        }
       }
-
-      const searchBoxEl = document.getElementById("search-box");
-      searchBoxEl.classList.remove("open");
-    }
-
-    function searchFor(searchTerms) {
-      searchTerms = searchTerms || null;
-      if(searchTerms) {
-        searchTerms = searchTerms.toLocaleLowerCase();
-      }
-
-      if(searchTerms !== STATE.searchTerms) {
-        STATE.searchTerms = searchTerms;
-        updateView(DATA, STATE);
-      }
-    }
-
-    document.addEventListener("readystatechange", () => {
-      if(document.readyState !== "interactive") {
-        return;
-      }
-
-      DATA.labels.forEach(label => {
-        const labelEl = document.getElementById(`label_${label.id}`);
-        labelEl.addEventListener("click", () => toggleLabelFilter(label.id));
-      });
-
-      const searchEl = document.getElementById("search-terms");
-      searchEl.addEventListener("keyup", () => searchFor(searchEl.value));
-      searchEl.addEventListener("blur", () => closeSearch(false));
-
-      const searchIconEl = document.getElementById("search-icon");
-      searchIconEl.addEventListener("click", () => openSearch());
-
-      const clearSearchEl = document.getElementById("clear-search");
-      clearSearchEl.addEventListener("click", () => closeSearch(true));
     });
   </script>
 </head>
@@ -478,7 +482,7 @@ $abandoned_picture = "iVBORw0KGgoAAAANSUhEUgAAAEAAAAA/CAYAAABQHc7KAAAABmJLR0QA/w
 
     <ul class="cards list">
       <% incoming_card_ids.map{|id| card(id)}.each do |card| %>
-      <li class="card <%= card["state"] %> visible" id="card_incoming_<%= card["id"] %>">
+      <li class="card <%= card["state"] %> visible card_<%= card["id"] %>">
         <div class="name">
           <a href="<%= card["shortUrl"] %>">
             <%= card["name"] %>
@@ -496,7 +500,7 @@ $abandoned_picture = "iVBORw0KGgoAAAANSUhEUgAAAEAAAAA/CAYAAABQHc7KAAAABmJLR0QA/w
     <% lists.each do |list| %>
     <ul class="cards list">
       <% list["cards"].each do |card| %>
-      <li class="card <%= card["state"] %> visible" id="card_<%= card["id"] %>">
+      <li class="card <%= card["state"] %> visible card_<%= card["id"] %>">
         <div class="name">
           <a href="<%= card["shortUrl"] %>">
             <%= card["name"] %>
@@ -514,7 +518,7 @@ $abandoned_picture = "iVBORw0KGgoAAAANSUhEUgAAAEAAAAA/CAYAAABQHc7KAAAABmJLR0QA/w
 
     <ul class="cards list">
       <% abandoned_card_ids.map{|id| card(id)}.each do |card| %>
-      <li class="card <%= card["state"] %> visible" id="card_abandoned_<%= card["id"] %>">
+      <li class="card <%= card["state"] %> visible card_<%= card["id"] %>">
         <div class="name">
           <a href="<%= card["shortUrl"] %>">
             <%= card["name"] %>
