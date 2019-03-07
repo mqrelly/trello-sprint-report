@@ -135,6 +135,12 @@ module TrelloReport
 
     def data_as_json
       data = {
+        :lists => lists.map do |lst|
+          {
+            :id => lst["id"],
+            :cardIds => lst["cards"].map{|crd| crd["id"]}
+          }
+        end,
         :labels => all_label_ids.map{|id| label(id)},
         :cards => all_card_ids.map{|id| card(id)}
       }

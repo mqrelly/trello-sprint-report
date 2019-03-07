@@ -102,47 +102,61 @@ $abandoned_picture = "iVBORw0KGgoAAAANSUhEUgAAAEAAAAA/CAYAAABQHc7KAAAABmJLR0QA/w
       border-color: #FF80CE;
     }
 
+    .label.lime .name,
+    .label-symbol.lime {
+      border-color: #51E898;
+    }
+
     .label.black .name,
     .label-symbol.black {
       color: #4d4d4d;
       border-color: #4d4d4d;
     }
 
+    .label-bar.green,
     .label.green.visible .name {
       background-color: #61BD4F;
     }
 
+    .label-bar.yellow,
     .label.yellow.visible .name {
       background-color: #F2D600;
     }
 
+    .label-bar.orange,
     .label.orange.visible .name {
       background-color: #FFAB4A;
     }
 
+    .label-bar.red,
     .label.red.visible .name {
       background-color: #EB5A46;
     }
 
+    .label-bar.purple,
     .label.purple.visible .name {
       background-color: #C377E0;
     }
 
+    .label-bar.blue,
     .label.blue.visible .name {
       background-color: #0079BF;
     }
 
+    .label-bar.sky,
     .label.sky.visible .name {
       background-color: #00C2E0;
     }
 
+    .label-bar.pink,
     .label.pink.visible .name {
       background-color: #FF80CE;
     }
 
+    .label-bar.black,
     .label.black.visible .name {
       background-color: #4d4d4d;
-    }    
+    }
 
     .list {
       list-style: none;
@@ -194,9 +208,25 @@ $abandoned_picture = "iVBORw0KGgoAAAANSUhEUgAAAEAAAAA/CAYAAABQHc7KAAAABmJLR0QA/w
     }
 
     .barchart.column .bar {
+      display: flex;
+      align-items: end;
       width: 50px;
       margin: 10px 0;
+      background-color: #eee;
+    }
+
+    .barchart.column .bar .summary-bar {
+      flex: auto;
+      display: block;
+      width: 100%;
+      height: 100%;
+      bottom: 0;
       background-color: silver;
+    }
+
+    .barchart.column .bar .label-bar {
+      display: none;
+      flex: auto;
     }
 
     .barchart.column .label {
@@ -303,48 +333,104 @@ $abandoned_picture = "iVBORw0KGgoAAAANSUhEUgAAAEAAAAA/CAYAAABQHc7KAAAABmJLR0QA/w
           searchTerms: null
         };
 
-        const UI = {
-          labels: DATA.labels
-            .map(label => { 
+        function listToTransformedObject(list, getId, getValue) {
+          return list
+            .map(e => {
               return {
-                id: label.id,
-                element: document.getElementById(`label_${label.id}`)
+                id: getId(e),
+                value: getValue(e)
               };
             })
-            .reduce((map, label) => {
-              map[label.id] = label.element;
+            .reduce((map, idVal) => {
+              map[idVal.id] = idVal.value;
               return map;
-            }, {}),
-          
+            }, {});
+        }
+
+        const UI = {
+          labels: listToTransformedObject(
+            DATA.labels,
+            label => label.id,
+            label => document.getElementById(`label_${label.id}`)),
+
           searchBox: document.getElementById("search-box"),
           searchIcon: document.getElementById("search-icon"),
           searchTerms: document.getElementById("search-terms"),
           clearSearch: document.getElementById("clear-search"),
 
-          cards: DATA.cards
-            .map(card => {
+          cards: listToTransformedObject(
+            DATA.cards,
+            card => card.id,
+            card => Array.prototype.slice.call(document.getElementsByClassName(`card_${card.id}`))),
+
+          barchart: listToTransformedObject(
+            DATA.lists,
+            list => list.id,
+            list => {
               return {
-                id: card.id,
-                elements: Array.prototype.slice.call(document.getElementsByClassName(`card_${card.id}`))
+                summaryBar: document.getElementById(`column_${list.id}_summary`),
+                labelBars: listToTransformedObject(
+                  DATA.labels,
+                  label => label.id,
+                  label => document.getElementById(`column_${list.id}_bar_${label.id}`))
               };
             })
-            .reduce((map, label) => {
-              map[label.id] = label.elements;
-              return map;
-            }, {})
         };
 
         DATA.labels.forEach(l => UI.labels[l.id].addEventListener("click",
           () => toggleLabelFilter(UI, DATA, STATE, l.id)));
-        
+
         UI.searchTerms.addEventListener("keyup", () => searchFor(UI, DATA, STATE, UI.searchTerms.value));
         UI.searchTerms.addEventListener("blur", () => closeSearch(UI, DATA, STATE, false));
         UI.searchIcon.addEventListener("click", () => openSearch(UI));
         UI.clearSearch.addEventListener("click", () => closeSearch(UI, DATA, STATE, true));
 
         function updateView(ui, data, state) {
+          data.lists.forEach(list => {
+            const totalCardCount = list.cardIds.length;
+            const barchart = ui.barchart[list.id];
+            
+            if(totalCardCount > 0) {
+              if(state.labelFilter.length > 0) {
+                ui.barchart[list.id].summaryBar.style.display = "none";
+                
+                Object.keys(barchart.labelBars).forEach(labelId => {
+                  const bar = barchart.labelBars[labelId];
+
+                  if(!isLabelVisible(labelId)) {
+                    bar.style.display = "none";
+                    return;
+                  }
+
+                  const visibleCardCount = list.cardIds
+                    .map(id => data.cards.find(crd => crd.id === id))
+                    .filter(card => card.labels.map(l => l.id).includes(labelId))
+                    .filter(isCardMatchedByTextSearch)
+                    .length;
+
+                  const heightInPercentage = visibleCardCount * 100 / totalCardCount;
+
+                  bar.style.display = "block";
+                  bar.style.height = `${heightInPercentage}%`;
+                });
+              }
+              else {
+                const visibleCardCount = list.cardIds
+                  .map(id => data.cards.find(crd => crd.id === id))
+                  .filter(isCardMatchedByTextSearch)
+                  .length;
+
+                const heightInPercentage = visibleCardCount * 100 / totalCardCount;
+
+                barchart.summaryBar.style.display = "block";
+                barchart.summaryBar.style.height = `${heightInPercentage}%`;
+                Object.keys(barchart.labelBars).forEach(bar => barchart.labelBars[bar].style.display = "none");
+              }
+            }
+          });
+
           data.labels.forEach(label => {
-            if(isLabelVisible(label)) {
+            if(isLabelVisible(label.id)) {
               ui.labels[label.id].classList.add("visible");
             } else {
               ui.labels[label.id].classList.remove("visible");
@@ -359,9 +445,9 @@ $abandoned_picture = "iVBORw0KGgoAAAANSUhEUgAAAEAAAAA/CAYAAABQHc7KAAAABmJLR0QA/w
             }
           });
 
-          function isLabelVisible(label) {
+          function isLabelVisible(labelId) {
             return state.labelFilter.length === 0 ||
-              state.labelFilter.includes(label.id);
+              state.labelFilter.includes(labelId);
           }
 
           function isCardFilteredByLabels(card) {
@@ -445,7 +531,12 @@ $abandoned_picture = "iVBORw0KGgoAAAANSUhEUgAAAEAAAAA/CAYAAABQHc7KAAAABmJLR0QA/w
   <% lists.each_with_index do |list, idx| %>
     <div class="barchart column">
       <div class="label"><%= list["name"] %></div>
-      <div class="bar" style="height: <%= bar_height_in_px(list["cards"].count) %>px;"></div>
+      <div class="bar" style="height: <%= bar_height_in_px(list["cards"].count) %>px;">
+        <div class="summary-bar" id="column_<%= list["id"] %>_summary"></div>
+        <% all_label_ids.map{|id| label(id)}.each do |label| %>
+        <div class="label-bar <%= label["color"] %>" id="column_<%= list["id"] %>_bar_<%= label["id"] %>"></div>
+        <% end %>
+      </div>
       <div class="amount"><%= list["cards"].count %></div>
     </div>
   <% end %>
